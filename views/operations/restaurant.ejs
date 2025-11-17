@@ -1,0 +1,91 @@
+<%- include("../partials/header.ejs") %>
+<h2 class="title">Incoming Orders</h2>
+
+<div class="orders-wrapper">
+
+    <!-- LEFT ARROW -->
+    <button class="scroll-btn left" onclick="scrollLeft()">◀</button>
+
+    <!-- SCROLLABLE STRIP -->
+    <div class="orders-strip" id="ordersStrip">
+        <% queue.forEach(order => { %>
+
+        <div class="order-card">
+
+            <h3>Order from <%= order.name %></h3>
+
+            <p><strong>Phone:</strong> <%= order.phone %></p>
+            <p><strong>Location:</strong> <%= order.location %></p>
+
+            <h4>Items:</h4>
+            <ul>
+                <% let total = 0; %>
+                <% order.items.forEach(i => { 
+                    const item = menu.find(m => m.id === i.id);
+                    const price = item.price;
+                    total += price * i.qty;
+                %>
+                <li><%= item.name %> 
+                    x <%= i.qty %> —₹<%= price * i.qty %></li>
+                <% }) %>
+            </ul>
+
+            <h4>Total: ₹<%= total %></h4>
+          <p>
+  <strong>Status:</strong> 
+  <span class="status-badge <%= order.status.toLowerCase() %>">
+    <%= order.status %>
+  </span>
+</p>
+
+          
+    <% if (order.status === "Placed") { %>
+        <button onclick="updateStatus('<%= order.id %>' , 'Accepted' )"> Accept</button>
+    <% } %>
+
+    <% if (order.status === "Accepted") { %>
+        <button onclick="updateStatus('<%= order.id %>' , 'Preparing')"> Start Preparing</button>
+    <% } %>
+
+    <% if (order.status === 'Preparing') { %>
+        <button onclick="updateStatus('<%= order.id %>' , 'Ready' )">Mark Ready</button>
+    <% } %>
+
+        </div>
+
+        <% }) %>
+    </div>
+
+    <!-- RIGHT ARROW -->
+    <button class="scroll-btn right" onclick="scrollRight()">▶</button>
+
+</div>
+<script>
+function scrollLeft(){
+    const strip = document.getElementById("ordersStrip");
+    strip.scrollBy({left: -300, behavior: 'smooth'});
+}   
+function scrollRight(){
+    const strip = document.getElementById("ordersStrip");
+    strip.scrollBy({left: 300, behavior: 'smooth'});
+}
+function updateStatus(id, newStatus) {
+    fetch("/restaurant/update", {   // correct route
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ id, newStatus }) // correct field names
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert("Failed to update status.");
+        }
+    });
+}
+
+</script>
+<%- include("../partials/footer.ejs") %>

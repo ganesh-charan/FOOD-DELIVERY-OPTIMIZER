@@ -1,0 +1,142 @@
+<%- include("../partials/header.ejs") %>
+
+<h3 class="greetings">welcome!!</h3>
+
+<!-- Add Order Button -->
+<div class="add-card" onclick="openPopup()">
+    <div class="add-section">
+        <img src="/add.png" alt="add" class="add-icon">
+        <span class="add-label">order here</span>
+    </div>
+</div>
+
+<!-- POPUP -->
+<div id="popup" class="popup-bg">
+    <div class="popup-box">
+
+        <h2>Customer Information</h2>
+
+        <!-- STEP 1 -->
+        <div id="step1">
+            <form id="customer-info-form">
+                <input type="text" name="name" placeholder="Your Name" required>
+                <input type="tel" name="phone" placeholder="Contact Number" required>
+                <input type="text" name="location" placeholder="Your Location" required>
+
+                <button type="button" onclick="goToMenu()">Next</button>
+            </form>
+        </div>
+
+        <!-- STEP 2 -->
+        <div id="step2" style="display: none;">
+            <h3>Select Items</h3>
+
+            <div id="menu-section">
+                <% menu.forEach(item => { %>
+                <div class="menu-item">
+                    <span><%= item.name %> - ₹<%= item.price %></span>
+
+                    <input 
+                        type="number" 
+                        min="0" 
+                        value="0"
+                        class="qty-input"
+                        data-id="<%= item.id %>"
+                    >
+                </div>
+                <% }) %>
+            </div>
+
+            <button type="button" onclick="submitOrder()">Place Order</button>
+        </div>
+        <button type="button" class="back-btn" onclick="document.getElementById('step2').style.display='none'; document.getElementById('step1').style.display='block';">Back</button>
+        <button class="close-btn" onclick="closePopup()">Close</button>
+
+    </div>
+</div>
+
+<!-- ORDER LIST -->
+<div class="orders-container">
+   <% queue.forEach(order => { %>
+      <div class="order-card">
+         <h4>Order</h4>
+         <% let total = 0; %>
+
+         <div class="order-items">
+           <% order.items.forEach(i => { 
+                const item = menu.find(m => m.id === i.id);
+                const price = item ? item.price : 0;
+                total += price * i.qty;
+           %>
+                <p><%= item ? item.name : i.id %> x <%= i.qty %> — ₹<%= price * i.qty %></p>
+           <% }) %>
+         </div>
+
+         <p><strong>Total: ₹<%= total %></strong></p>
+         <p>
+            <strong>Status:</strong>
+            <span class="status-badge <%= order.status.toLowerCase() %>">   
+             <%= order.status %>
+            </span>
+        </p>
+      </div>
+   <% }) %>
+</div>
+
+<!-- JS -->
+<script>
+function openPopup(){
+    document.getElementById("popup").style.display = "flex";
+}
+
+function closePopup(){
+    document.getElementById("popup").style.display = "none";
+}
+
+function goToMenu(){
+    document.getElementById("step1").style.display = "none";
+    document.getElementById("step2").style.display = "block";
+}
+
+function submitOrder(){
+
+    const name = document.querySelector('input[name="name"]').value;
+    const phone = document.querySelector('input[name="phone"]').value;
+    const location = document.querySelector('input[name="location"]').value;
+
+    const items = [];
+
+    document.querySelectorAll('.qty-input').forEach(input => {
+        const qty = parseInt(input.value);
+        if(qty > 0){
+            items.push({
+                id: input.dataset.id,
+                qty: qty
+            });
+        }
+    });
+
+    if(items.length === 0){
+        alert("Please select at least one item.");
+        return;
+    }
+
+    const orderData = { name, phone, location, items };
+
+    fetch('/customer/add', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData)
+    })
+    .then(() => {
+        closePopup();
+        window.location.reload(); // refresh to show new order
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Failed to submit order.");
+    });
+}
+</script>
+
+<%- include("../partials/footer.ejs") %>
