@@ -21,7 +21,20 @@
             <form id="customer-info-form">
                 <input type="text" name="name" placeholder="Your Name" required>
                 <input type="tel" name="phone" placeholder="Contact Number" required>
-                <input type="text" name="location" placeholder="Your Location" required>
+                <select name="location" required>
+                <option value="" disabled selected>Select your location</option>
+                <option value="0">Restaurant</option>
+                <option value="1">Central Mall</option>
+                <option value="2">IT Park</option>
+                <option value="3">Railway Station</option>
+                <option value="4">Airport</option>
+                <option value="5">University</option>
+                <option value="6">Hospital</option>
+                <option value="7">Old Town</option>
+                <option value="8">Stadium</option>
+                <option value="9">Bus Stand</option>
+            </select>
+
 
                 <button type="button" onclick="goToMenu()">Next</button>
             </form>
@@ -60,6 +73,7 @@
    <% queue.forEach(order => { %>
       <div class="order-card">
          <h4>Order</h4>
+           <p><strong>Order ID:</strong> <%= order.id %></p>
          <% let total = 0; %>
 
          <div class="order-items">
@@ -102,7 +116,7 @@ function submitOrder(){
 
     const name = document.querySelector('input[name="name"]').value;
     const phone = document.querySelector('input[name="phone"]').value;
-    const location = document.querySelector('input[name="location"]').value;
+    const location = document.querySelector('select[name="location"]').value;
 
     const items = [];
 

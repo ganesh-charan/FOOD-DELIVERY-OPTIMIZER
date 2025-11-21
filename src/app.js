@@ -2,6 +2,9 @@ import express from "express";
 import { MENU } from "./menu.js";
 import crypto from "crypto";
 import { enqueueOrder, dequeueOrder, getQueue } from "./queue.js";
+import { spawn } from "child_process";
+import { guy1, guy2, updatePositions } from "./src/DELIVERY.js";
+
 
 const app = express();
 app.use(express.json());
@@ -24,7 +27,10 @@ app.get("/restaurant", (req, res) => res.render("operations/restaurant",{
     menu: MENU,
     queue: getQueue()
 }));
-app.get("/delivery", (req, res) => res.render("operations/delivery"));
+app.get("/delivery", (req, res) => res.render("operations/delivery",{
+    queue: getQueue(),
+    menu: MENU
+}));
 
 app.get("/customer", (req, res) => {
     res.render("operations/customer", {
@@ -38,9 +44,40 @@ app.post("/customer/add", (req, res) => {
     const order = req.body; // FIXED
     order.status = "Placed";
     order.id = crypto.randomUUID();
+    const customerLocation = parseInt(order.location);
+    order.estimatedDeliveryTime = Date.now() + customerLocation * 1000 * 60; // in ms
+    const child=spawn("./src/delivery.exe",
+        [customerLocation.toString()
+        ,guy1.toString(),
+        guy2.toString()]
+    );
+    let output="";
+
+
+    child.stdout.on("data",(chunk)=>{
+         output+=chunk.toString();
+    });
+
+
+    child.stderr.on("data",(chunk)=>{
+        console.error("Error:",chunk.toString());
+    });
+
+
+    child.on("close",(code)=>{
+
+    const routing=JSON.parse(output);
+
+    updatePositions(routing.assigned, customerLocation);
+
+    order.routing=routing;
 
     enqueueOrder(order);
+
     res.status(200).send({ message: "Order placed successfully!" });
+
+        console.log(`Child process exited with code ${code}`);
+    });
 });
 //restaurant updating order status
 app.post("/restaurant/update", (req, res) => {
