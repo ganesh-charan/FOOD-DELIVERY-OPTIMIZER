@@ -1,3 +1,83 @@
 <%- include("../partials/header.ejs") %>
 
+<h2 class="title">Delivery Dashboard</h2>
+
+<div class="delivery-guys">
+
+    <div class="guy-card" onclick="openGuy('guy1')">
+        <h3>Delivery Guy 1</h3>
+        <p>Click to view assigned orders</p>
+    </div>
+
+    <div class="guy-card" onclick="openGuy('guy2')">
+        <h3>Delivery Guy 2</h3>
+        <p>Click to view assigned orders</p>
+    </div>
+
+</div>
+
+
+<!-- POPUP FOR GUY ORDERS -->
+<div id="popup" class="popup-bg">
+
+    <div class="popup-box">
+
+        <h2 id="popup-title">Delivery Orders</h2>
+
+        <div id="orders-container"></div>
+
+        <button class="close-btn" onclick="closePopup()">Close</button>
+    </div>
+
+</div>
+
+
+<script>
+function openGuy(guy){
+    fetch("/delivery/orders?guy=" + guy)
+    .then(res => res.json())
+    .then(data => {
+        
+        // Set title
+        document.getElementById("popup-title").innerText = 
+            (guy === "guy1") ? "Guy 1 Orders" : "Guy 2 Orders";
+
+        let box = document.getElementById("orders-container");
+        box.innerHTML = ""; // clear old
+
+        if(data.length === 0){
+            box.innerHTML = "<p>No orders assigned.</p>";
+        } else {
+            data.forEach(order => {
+                box.innerHTML += `
+                    <div class="order-card">
+                        <h4>Order from ${order.name}</h4>
+                        <p><strong>Phone:</strong> ${order.phone}</p>
+                        <p><strong>Location:</strong> ${order.location}</p>
+                        <p><strong>Path:</strong> ${order.routing.path.join(" → ")}</p>
+                        <p><strong>Distance:</strong> ${order.routing.distance}</p>
+                        <button onclick="markDelivered('${order.id}')">Mark Delivered</button>
+                    </div>
+                `;
+            });
+        }
+
+        document.getElementById("popup").style.display = "flex";
+    });
+}
+
+function closePopup(){
+    document.getElementById("popup").style.display = "none";
+}
+
+function markDelivered(id){
+    fetch("/delivery/delivered", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+    })
+    .then(()=>location.reload());
+}
+</script>
+
 <%- include("../partials/footer.ejs") %>

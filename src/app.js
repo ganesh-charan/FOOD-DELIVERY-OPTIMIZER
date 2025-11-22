@@ -3,7 +3,7 @@ import { MENU } from "./menu.js";
 import crypto from "crypto";
 import { enqueueOrder, dequeueOrder, getQueue } from "./queue.js";
 import { spawn } from "child_process";
-import { guy1, guy2, updatePositions } from "./src/DELIVERY.js";
+import { guy1, guy2, updatePositions } from "./DELIVERY.js";
 
 
 const app = express();
@@ -67,6 +67,7 @@ app.post("/customer/add", (req, res) => {
     child.on("close",(code)=>{
 
     const routing=JSON.parse(output);
+    routing.assigned = routing.assigned.toLowerCase(); 
 
     updatePositions(routing.assigned, customerLocation);
 
@@ -92,6 +93,17 @@ app.post("/restaurant/update", (req, res) => {
     order.status = newStatus;
 
     res.json({ success: true, message: "Updated" });
+});
+// Delivery completing order
+app.get("/delivery/orders", (req, res) => {
+    const guy = req.query.guy;
+
+    const result = getQueue().filter(order => 
+        order.routing.assigned === guy && 
+        order.status === "Ready"
+    );
+
+    res.json(result);
 });
 
 
