@@ -2,6 +2,10 @@
 
 <h3 class="greetings">welcome!!</h3>
 
+<!-- DELIVERY STATUS BANNER -->
+<div id="delivery-status-banner" style="display: none; padding: 15px; margin: 15px 0; border-radius: 8px; font-weight: bold; text-align: center;">
+</div>
+
 <!-- Add Order Button -->
 <div class="add-card" onclick="openPopup()">
     <div class="add-section">
@@ -21,7 +25,7 @@
             <form id="customer-info-form">
                 <input type="text" name="name" placeholder="Your Name" required>
                 <input type="tel" name="phone" placeholder="Contact Number" required>
-                <select name="location" required>
+            <select name="location" required>
                 <option value="" disabled selected>Select your location</option>
                 <option value="0">Restaurant</option>
                 <option value="1">Central Mall</option>
@@ -72,8 +76,8 @@
 <div class="orders-container">
    <% queue.forEach(order => { %>
       <div class="order-card">
-         <h4>Order</h4>
-           <p><strong>Order ID:</strong> <%= order.id %></p>
+         <h4>📦 Order</h4>
+           <p><strong>Order ID:</strong> <code><%= order.id %></code></p>
          <% let total = 0; %>
 
          <div class="order-items">
@@ -82,7 +86,7 @@
                 const price = item ? item.price : 0;
                 total += price * i.qty;
            %>
-                <p><%= item ? item.name : i.id %> x <%= i.qty %> — ₹<%= price * i.qty %></p>
+                <p>• <%= item ? item.name : i.id %> x <%= i.qty %> — ₹<%= price * i.qty %></p>
            <% }) %>
          </div>
 
@@ -92,7 +96,18 @@
             <span class="status-badge <%= order.status.toLowerCase() %>">   
              <%= order.status %>
             </span>
-            <h3>assaigned guy is <%= order.routing.assigned %> </h3>
+        </p>
+        <p>
+            <strong>🚚 Assigned Guy:</strong>
+            <% if (order.routing && order.routing.assigned !== "pending") { %>
+                <span style="color: green; font-weight: bold;"><%= order.routing.assigned.toUpperCase() %></span>
+                <br/>
+                <strong>📍 Route:</strong> <%= order.routing.path.join(" → ") %>
+                <br/>
+                <strong>📏 Distance:</strong> <%= order.routing.distance %> units
+            <% } else { %>
+                <span style="color: orange;"><%= order.routing && order.routing.assigned === "pending" ? "PENDING (waiting for delivery guy)" : "Not assigned yet" %></span>
+            <% } %>
         </p>
       </div>
    <% }) %>
@@ -143,15 +158,55 @@ function submitOrder(){
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderData)
     })
-    .then(() => {
+    .then(res => res.json())
+    .then(data => {
+        // ✅ Handle different response statuses
+        if (data.status === "waiting") {
+            alert("✅ Order Placed!\n\n⏳ Both delivery guys are currently busy.\nYour order has been queued and will be assigned automatically when a delivery guy becomes available.\n\nThank you for your patience!");
+        } else {
+            alert("✅ Order Placed Successfully!\n\n🚚 Your order is being prepared and will be delivered soon.");
+        }
         closePopup();
         window.location.reload(); // refresh to show new order
     })
     .catch(err => {
-        console.error(err);
-        alert("Failed to submit order.");
+        console.error("Error:", err);
+        alert("Failed to place order. Please try again.");
     });
 }
+
+// ✅ NEW: Update delivery status banner
+function updateDeliveryStatusBanner() {
+    fetch("/delivery/status")
+    .then(res => res.json())
+    .then(data => {
+        const guy1Idle = data.guy1.status === "idle";
+        const guy2Idle = data.guy2.status === "idle";
+        const bothBusy = !guy1Idle && !guy2Idle;
+        
+        const banner = document.getElementById("delivery-status-banner");
+        
+        if (bothBusy) {
+            banner.style.display = "block";
+            banner.style.backgroundColor = "#fff3cd";
+            banner.style.color = "#856404";
+            banner.innerHTML = `
+                <span style="font-size: 18px;">⏳ Both delivery guys are busy!</span>
+                <br/>
+                <span style="font-size: 14px;">New orders will be queued and assigned automatically when available.</span>
+            `;
+        } else {
+            banner.style.display = "none";
+        }
+    })
+    .catch(err => console.error("Error fetching status:", err));
+}
+
+// Update banner on page load
+updateDeliveryStatusBanner();
+
+// Refresh banner every 2 seconds
+setInterval(updateDeliveryStatusBanner, 2000);
 </script>
 
 <%- include("../partials/footer.ejs") %>

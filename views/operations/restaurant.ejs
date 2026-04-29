@@ -22,10 +22,10 @@
                 <% let total = 0; %>
                 <% order.items.forEach(i => { 
                     const item = menu.find(m => m.id === i.id);
-                    const price = item.price;
+                    const price = item ? item.price : 0;
                     total += price * i.qty;
                 %>
-                <li><%= item.name %> 
+                <li><%= item ? item.name : i.id %> 
                     x <%= i.qty %> —₹<%= price * i.qty %></li>
                 <% }) %>
             </ul>
@@ -39,7 +39,7 @@
 </p>
 
           
-    <% if (order.status === "Placed") { %>
+    <% if (order.status === "Placed" || order.status === "Waiting" || order.status === "Assigned") { %>
         <button onclick="updateStatus('<%= order.id %>' , 'Accepted' )"> Accept</button>
     <% } %>
 

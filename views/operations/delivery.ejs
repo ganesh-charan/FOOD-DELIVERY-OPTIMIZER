@@ -1,16 +1,40 @@
 <%- include("../partials/header.ejs") %>
 
-<h2 class="title">Delivery Dashboard</h2>
+<h2 class="title">🚚 Delivery Dashboard</h2>
 
+<!-- REAL-TIME STATUS DISPLAY -->
+<div class="status-overview" style="display: flex; gap: 20px; margin-bottom: 30px;">
+    <div class="status-card" style="flex: 1; padding: 15px; background: #f0f0f0; border-radius: 8px;">
+        <h3>👨‍💼 Delivery Guy 1</h3>
+        <p><strong>Status:</strong> <span id="guy1-status" style="color: green;">Checking...</span></p>
+        <p><strong>Position:</strong> <span id="guy1-position">-</span></p>
+        <p><strong>Current Order:</strong> <span id="guy1-order">-</span></p>
+    </div>
+    
+    <div class="status-card" style="flex: 1; padding: 15px; background: #f0f0f0; border-radius: 8px;">
+        <h3>👨‍💼 Delivery Guy 2</h3>
+        <p><strong>Status:</strong> <span id="guy2-status" style="color: green;">Checking...</span></p>
+        <p><strong>Position:</strong> <span id="guy2-position">-</span></p>
+        <p><strong>Current Order:</strong> <span id="guy2-order">-</span></p>
+    </div>
+</div>
+
+<!-- WAITING ORDERS SECTION -->
+<div id="waiting-orders-section" style="display: none; padding: 15px; margin: 20px 0; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px;">
+    <h3 style="color: #856404;">⏳ Orders Waiting for Delivery Guy</h3>
+    <div id="waiting-orders-list" style="margin-top: 10px;"></div>
+</div>
+
+<!-- DELIVERY GUY CARDS -->
 <div class="delivery-guys">
 
     <div class="guy-card" onclick="openGuy('guy1')">
-        <h3>Delivery Guy 1</h3>
+        <h3>👨‍💼 Delivery Guy 1</h3>
         <p>Click to view assigned orders</p>
     </div>
 
     <div class="guy-card" onclick="openGuy('guy2')">
-        <h3>Delivery Guy 2</h3>
+        <h3>👨‍💼 Delivery Guy 2</h3>
         <p>Click to view assigned orders</p>
     </div>
 
@@ -33,6 +57,66 @@
 
 
 <script>
+
+// ✅ NEW: Load real-time status every 3 seconds
+function updateDeliveryStatus() {
+    fetch("/delivery/status")
+    .then(res => res.json())
+    .then(data => {
+        // Update Guy 1
+        const guy1Status = data.guy1.status;
+        const guy1Color = guy1Status === "idle" ? "green" : "orange";
+        document.getElementById("guy1-status").innerText = guy1Status.toUpperCase();
+        document.getElementById("guy1-status").style.color = guy1Color;
+        document.getElementById("guy1-position").innerText = "Location " + data.guy1.position;
+        document.getElementById("guy1-order").innerText = data.guy1.currentOrderId ? "Order: " + data.guy1.currentOrderId.substring(0, 8) + "..." : "None";
+        
+        // Update Guy 2
+        const guy2Status = data.guy2.status;
+        const guy2Color = guy2Status === "idle" ? "green" : "orange";
+        document.getElementById("guy2-status").innerText = guy2Status.toUpperCase();
+        document.getElementById("guy2-status").style.color = guy2Color;
+        document.getElementById("guy2-position").innerText = "Location " + data.guy2.position;
+        document.getElementById("guy2-order").innerText = data.guy2.currentOrderId ? "Order: " + data.guy2.currentOrderId.substring(0, 8) + "..." : "None";
+    })
+    .catch(err => console.error("Error fetching status:", err));
+    
+    // ✅ NEW: Show waiting orders
+    fetch("/delivery/waiting-orders")
+    .then(res => res.json())
+    .then(orders => {
+        const waitingSection = document.getElementById("waiting-orders-section");
+        const waitingList = document.getElementById("waiting-orders-list");
+        
+        if (orders.length === 0) {
+            waitingSection.style.display = "none";
+        } else {
+            waitingSection.style.display = "block";
+            waitingList.innerHTML = "";
+            
+            orders.forEach(order => {
+                const html = `
+                    <div style="padding: 10px; margin: 5px 0; background: white; border-radius: 5px; border-left: 4px solid #ffc107;">
+                        <strong>📦 Order:</strong> ${order.id.substring(0, 12)}... 
+                        <br/><strong>👤 Customer:</strong> ${order.name} 
+                        <br/><strong>📍 Location:</strong> ${order.location}
+                        <br/><strong>⏳ Status:</strong> <span style="color: #856404; font-weight: bold;">WAITING</span> - Will be assigned when delivery guy available
+                    </div>
+                `;
+                waitingList.innerHTML += html;
+            });
+        }
+    })
+    .catch(err => console.error("Error fetching waiting orders:", err));
+}
+
+// Load status on page load
+updateDeliveryStatus();
+
+// Refresh status every 3 seconds
+setInterval(updateDeliveryStatus, 3000);
+
+// ✅ Existing functions (unchanged)
 function openGuy(guy){
     fetch("/delivery/orders?guy=" + guy)
     .then(res => res.json())
@@ -56,7 +140,11 @@ function openGuy(guy){
                         <p><strong>Location:</strong> ${order.location}</p>
                         <p><strong>Path:</strong> ${order.routing.path.join(" → ")}</p>
                         <p><strong>Distance:</strong> ${order.routing.distance}</p>
-                        <button onclick="markDelivered('${order.id}')">Mark Delivered</button>
+                        <p><strong>Status:</strong> ${order.status}</p>
+                        ${order.status === 'Ready' 
+                            ? `<button onclick="markDelivered('${order.id}')">Mark Delivered</button>`
+                            : `<button disabled style="background:#ccc; cursor:not-allowed;">Waiting for Restaurant</button>`
+                        }
                     </div>
                 `;
             });
@@ -76,7 +164,11 @@ function markDelivered(id){
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id })
     })
-    .then(()=>location.reload());
+    .then(()=> {
+        alert("Order marked as delivered!");
+        updateDeliveryStatus();  // ✅ Refresh status immediately
+        location.reload();
+    });
 }
 </script>
 

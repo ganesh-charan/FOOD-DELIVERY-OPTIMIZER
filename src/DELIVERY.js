@@ -1,15 +1,17 @@
 // Delivery Guy State Management System
+import { getQueue } from "./queue.js";
+
 export let guy1 = {
-    position: 0,           // Current location (restaurant)
-    status: "idle",        // "idle" or "in_delivery"
-    currentOrderId: null,  // Order being delivered
+    position: 0,           
+    status: "in_delivery", 
+    currentOrderId: getQueue()[1].id,  // Bob Jones order
     lastDeliveryLocation: 0
 };
 
 export let guy2 = {
-    position: 0,           // Current location (restaurant)
-    status: "idle",        // "idle" or "in_delivery"
-    currentOrderId: null,  // Order being delivered
+    position: 0,           
+    status: "in_delivery", 
+    currentOrderId: getQueue()[2].id,  // Charlie Brown order
     lastDeliveryLocation: 0
 };
 

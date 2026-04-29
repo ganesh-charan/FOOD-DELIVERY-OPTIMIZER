@@ -168,7 +168,7 @@ app.get("/delivery/status", (req, res) => {
 // ✅ NEW: Get all waiting orders (not yet assigned)
 app.get("/delivery/waiting-orders", (req, res) => {
     const waitingOrders = getQueue().filter(order => 
-        order.status === "Waiting" && order.routing.assigned === "pending"
+        order.routing && order.routing.assigned === "pending"
     );
     res.json(waitingOrders);
 });
@@ -179,8 +179,8 @@ app.get("/delivery/orders", (req, res) => {
     
     // ✅ FIX: Filter by assignment AND ensure guy is marked as in_delivery
     const result = getQueue().filter(order =>
-        order.routing.assigned === guy &&
-        (order.status === "Assigned" || order.status === "Ready")
+        order.routing && order.routing.assigned === guy &&
+        ["Assigned", "Accepted", "Preparing", "Ready"].includes(order.status)
     );
 
     // Give only the first order so the rest wait
@@ -215,8 +215,57 @@ app.post("/delivery/delivered", (req, res) => {
     
     console.log(`✅ Order ${id} marked as delivered by ${order.routing.assigned} at location ${deliveryLocation}`);
     
+    // Automatically assign any pending orders to the newly available guy
+    assignPendingOrders();
+    
     res.json({ success: true, message: "Order delivered successfully" });
 });
+
+// Function to assign pending orders
+function assignPendingOrders() {
+    // Find the first unassigned order
+    const pendingOrder = getQueue().find(o => o.routing && o.routing.assigned === "pending");
+    if (!pendingOrder) return;
+
+    const guy1Position = getDeliveryGuyPosition("guy1");
+    const guy2Position = getDeliveryGuyPosition("guy2");
+    const guy1Available = isDeliveryGuyAvailable("guy1");
+    const guy2Available = isDeliveryGuyAvailable("guy2");
+
+    if (!guy1Available && !guy2Available) return;
+
+    const guy1Args = guy1Available ? guy1Position.toString() : "-1";
+    const guy2Args = guy2Available ? guy2Position.toString() : "-1";
+    const customerLocation = parseInt(pendingOrder.location);
+
+    const child = spawn(path.join(__dirname, "delivery.exe"), [
+        customerLocation.toString(),
+        guy1Args,
+        guy2Args
+    ]);
+
+    let output = "";
+    child.stdout.on("data", (chunk) => output += chunk.toString());
+    child.on("close", (code) => {
+        try {
+            const routing = JSON.parse(output);
+            routing.assigned = routing.assigned.toLowerCase();
+            if (routing.assigned !== "pending" && isDeliveryGuyAvailable(routing.assigned)) {
+                pendingOrder.routing = routing;
+                // Only update status if it's still Waiting
+                if (pendingOrder.status === "Waiting") {
+                    pendingOrder.status = "Assigned";
+                }
+                setDeliveryInProgress(routing.assigned, pendingOrder.id, customerLocation);
+                console.log(`✅ Pending Order ${pendingOrder.id} auto-assigned to ${routing.assigned}`);
+                // Recursively check if another guy is also available for another pending order
+                assignPendingOrders();
+            }
+        } catch (err) {
+            console.error("❌ Parse error in assignPendingOrders:", err);
+        }
+    });
+}
 
 
 // SERVER
