@@ -119,23 +119,108 @@ int main(int argc, char* argv[]) {
 
     vector<vector<pair<int,int>>> graph = buildCityGraph();
 
-    // Compute shortest paths for each delivery guy
-    DijkstraResult d1 = dijkstra(graph, guy1Place);
-    DijkstraResult d2 = dijkstra(graph, guy2Place);
+    // ✅ Check availability: -1 means delivery guy is busy/unavailable
+    bool guy1Available = guy1Place != -1;
+    bool guy2Available = guy2Place != -1;
+    
+    // If both are unavailable, return pending
+    if (!guy1Available && !guy2Available) {
+        cout << "{";
+        cout << "\"assigned\":\"pending\",";
+        cout << "\"distance\":999999,";
+        cout << "\"path\":[]";
+        cout << "}";
+        return 0;
+    }
+    
+    // If only one is available, assign to that one
+    if (!guy1Available) {
+        // Only Guy 2 available
+        DijkstraResult d2ToRest = dijkstra(graph, guy2Place);
+        DijkstraResult restToCust = dijkstra(graph, 0);
+        
+        int dist2 = d2ToRest.distance[0] + restToCust.distance[customerPlace];
+        vector<int> p1 = buildPath(0, d2ToRest.parent);
+        vector<int> p2 = buildPath(customerPlace, restToCust.parent);
+        
+        vector<int> finalPath = p1;
+        for (int i = 1; i < p2.size(); i++) {
+            finalPath.push_back(p2[i]);
+        }
+        
+        cout << "{";
+        cout << "\"assigned\":\"Guy2\",";
+        cout << "\"distance\":" << dist2 << ",";
+        cout << "\"path\":[";
+        for (int i = 0; i < finalPath.size(); i++) {
+            cout << finalPath[i];
+            if (i < finalPath.size() - 1) cout << ",";
+        }
+        cout << "]";
+        cout << "}";
+        return 0;
+    }
+    
+    if (!guy2Available) {
+        // Only Guy 1 available
+        DijkstraResult d1ToRest = dijkstra(graph, guy1Place);
+        DijkstraResult restToCust = dijkstra(graph, 0);
+        
+        int dist1 = d1ToRest.distance[0] + restToCust.distance[customerPlace];
+        vector<int> p1 = buildPath(0, d1ToRest.parent);
+        vector<int> p2 = buildPath(customerPlace, restToCust.parent);
+        
+        vector<int> finalPath = p1;
+        for (int i = 1; i < p2.size(); i++) {
+            finalPath.push_back(p2[i]);
+        }
+        
+        cout << "{";
+        cout << "\"assigned\":\"Guy1\",";
+        cout << "\"distance\":" << dist1 << ",";
+        cout << "\"path\":[";
+        for (int i = 0; i < finalPath.size(); i++) {
+            cout << finalPath[i];
+            if (i < finalPath.size() - 1) cout << ",";
+        }
+        cout << "]";
+        cout << "}";
+        return 0;
+    }
 
-    // Determine the best guy
+    // ✅ Both available - choose nearest using Dijkstra
+    DijkstraResult d1ToRest = dijkstra(graph, guy1Place);
+    DijkstraResult d2ToRest = dijkstra(graph, guy2Place);
+    DijkstraResult restToCust = dijkstra(graph, 0);
+
+    // Total distances via restaurant
+    int dist1 = d1ToRest.distance[0] + restToCust.distance[customerPlace];
+    int dist2 = d2ToRest.distance[0] + restToCust.distance[customerPlace];
+
     string assignedGuy;
     vector<int> finalPath;
     int finalDistance;
 
-    if (d1.distance[customerPlace] <= d2.distance[customerPlace]) {
+    if (dist1 <= dist2) {
         assignedGuy = "Guy1";
-        finalPath = buildPath(customerPlace, d1.parent);
-        finalDistance = d1.distance[customerPlace];
+        finalDistance = dist1;
+        vector<int> p1 = buildPath(0, d1ToRest.parent);
+        vector<int> p2 = buildPath(customerPlace, restToCust.parent);
+        
+        finalPath = p1;
+        for (int i = 1; i < p2.size(); i++) {
+            finalPath.push_back(p2[i]);
+        }
     } else {
         assignedGuy = "Guy2";
-        finalPath = buildPath(customerPlace, d2.parent);
-        finalDistance = d2.distance[customerPlace];
+        finalDistance = dist2;
+        vector<int> p1 = buildPath(0, d2ToRest.parent);
+        vector<int> p2 = buildPath(customerPlace, restToCust.parent);
+        
+        finalPath = p1;
+        for (int i = 1; i < p2.size(); i++) {
+            finalPath.push_back(p2[i]);
+        }
     }
 
     // Output JSON for Node.js
