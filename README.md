@@ -14,18 +14,26 @@ Customers place orders through a user-friendly interface. Orders are queued and 
 - **Architecture:** MVC pattern with server-side rendering
 
 ## Project Structure
+## 📁 Project Structure
+```
 food-delivery-optimizer/
+│
 ├── src/
-│   ├── app.js              # Express server and route handlers
-│   ├── DELIVERY.js         # Delivery agent state management
-│   └── delivery.cpp        # Dijkstra algorithm implementation
+│   ├── app.js              # Express server + route handlers
+│   ├── DELIVERY.js        # Delivery agent state management
+│   └── delivery.cpp       # Dijkstra algorithm implementation
+│
 ├── views/
 │   └── operations/
-│       ├── customer.ejs    # Customer order interface
-│       └── delivery.ejs    # Delivery dashboard
-├── public/                 # Static assets (CSS, client-side JS)
-├── package.json
-└── .gitignore
+│       ├── customer.ejs   # Customer order interface
+│       └── delivery.ejs   # Delivery dashboard
+│
+├── public/                # Static assets (CSS, client-side JS)
+│
+├── package.json           # Project dependencies & scripts
+├── .gitignore             # Ignored files configuration
+```
+
 ## How It Works
 
 1. Customer places an order via the web interface.
