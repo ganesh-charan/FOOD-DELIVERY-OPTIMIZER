@@ -127,6 +127,17 @@ Order delivered
 └── Update agent position to delivery location
 └── Set agent status to "idle"
 └── Check order queue and auto-assign if pending
+## Team
+
+| Roll Number    | Name                      |
+|----------------|---------------------------|
+| AP24110011704  | V N S Ganesh Charan Paturu |
+| AP24110011685  | Yashwanth Dogga           |
+| AP24110011724  | Kishor Gunithi            |
+| AP24110011729  | Anand Gokul Kota          |
+| AP24110011721  | Likhita Reddy R           |
+| AP24110011717  | Divya B                   |
+
 ## License
 
 ISC
